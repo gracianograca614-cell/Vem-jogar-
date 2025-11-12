@@ -1,43 +1,212 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bac Bo Cassino Virtual</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #1b1b1b, #2b2b2b);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
 
-on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
+        header {
+            text-align: center;
+            margin-top: 30px;
+        }
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+        h1 {
+            color: #f4c542;
+            font-size: 2.5em;
+        }
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+        #login {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+        #login input {
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: none;
+            margin-bottom: 10px;
+            width: 200px;
+        }
 
-jobs:
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        #login button {
+            padding: 10px 25px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 5px;
+            background: #f44242;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #login button:hover {
+            background: #e63939;
+        }
+
+        #mesa {
+            display: none;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        #mesa h2 {
+            color: #f4c542;
+        }
+
+        .apostas button {
+            margin: 10px;
+            padding: 15px 25px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 8px;
+            background: #4287f4;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .apostas button:hover {
+            background: #3468c2;
+        }
+
+        #dados {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .dado {
+            width: 70px;
+            height: 70px;
+            margin: 0 10px;
+            font-size: 2em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+            color: #000;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #000;
+        }
+
+        #resultadoFinal {
+            margin-top: 20px;
+            font-size: 1.5em;
+            color: #42f4a7;
+        }
+
+        footer {
+            margin-top: 50px;
+            font-size: 0.9em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Bac Bo Cassino Virtual</h1>
+    <p>Digite seu nome e comece a jogar Bac Bo!</p>
+</header>
+
+<div id="login">
+    <input type="text" id="nomeJogador" placeholder="Digite seu nome">
+    <button onclick="iniciarSessao()">Iniciar Sessão</button>
+</div>
+
+<div id="mesa">
+    <h2>Jogador: <span id="nomeExibido"></span></h2>
+    <p>Escolha sua aposta:</p>
+    <div class="apostas">
+        <button onclick="apostar('Grande')">Grande</button>
+        <button onclick="apostar('Pequeno')">Pequeno</button>
+        <button onclick="apostar('Triplo')">Triplo</button>
+    </div>
+
+    <div id="dados">
+        <div class="dado" id="dado1">🎲</div>
+        <div class="dado" id="dado2">🎲</div>
+        <div class="dado" id="dado3">🎲</div>
+    </div>
+
+    <div id="resultadoFinal"></div>
+</div>
+
+<footer>
+    &copy; 2025 Cassino Virtual Bac Bo
+</footer>
+
+<script>
+    let nomeJogador = '';
+
+    function iniciarSessao() {
+        const inputNome = document.getElementById('nomeJogador');
+        if(inputNome.value.trim() === '') {
+            alert('Por favor, digite seu nome!');
+            return;
+        }
+        nomeJogador = inputNome.value.trim();
+        document.getElementById('nomeExibido').innerText = nomeJogador;
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('mesa').style.display = 'block';
+    }
+
+    function apostar(tipoAposta) {
+        const dado1 = document.getElementById('dado1');
+        const dado2 = document.getElementById('dado2');
+        const dado3 = document.getElementById('dado3');
+        const resultadoFinal = document.getElementById('resultadoFinal');
+
+        resultadoFinal.innerText = 'Rolando os dados... 🎲';
+
+        let cont = 0;
+        const interval = setInterval(() => {
+            dado1.innerText = Math.floor(Math.random() * 6) + 1;
+            dado2.innerText = Math.floor(Math.random() * 6) + 1;
+            dado3.innerText = Math.floor(Math.random() * 6) + 1;
+            cont++;
+            if(cont > 15){ // dura ~2s
+                clearInterval(interval);
+                const v1 = parseInt(dado1.innerText);
+                const v2 = parseInt(dado2.innerText);
+                const v3 = parseInt(dado3.innerText);
+                const soma = v1 + v2 + v3;
+
+                let resultado = '';
+                if(v1 === v2 && v2 === v3){
+                    resultado = 'Triplo';
+                } else if(soma >= 4 && soma <= 10){
+                    resultado = 'Pequeno';
+                } else if(soma >= 11 && soma <= 17){
+                    resultado = 'Grande';
+                }
+
+                resultadoFinal.innerText = `Resultado: ${resultado}`;
+
+                if(tipoAposta === resultado){
+                    resultadoFinal.innerText += ' ✅ Você ganhou!';
+                } else {
+                    resultadoFinal.innerText += ' ❌ Você perdeu!';
+                }
+            }
+        }, 100);
+    }
+</script>
+
+</body>
+</html>
