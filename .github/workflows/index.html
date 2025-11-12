@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BackBook do Graciano — Robô 24h Inteligente</title>
+<style>
+:root{
+  --bg1:#0f1113; --bg2:#222428; --accent:#f4c542; --succ:#42f4a7; --danger:#f44242; --info:#4287f4;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:Arial,sans-serif; background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  color:#e9ecef; padding:18px;
+}
+header{text-align:center;margin-bottom:10px;}
+h1{color:var(--accent); font-size:2rem;}
+p.lead{color:#cfd8dc;}
+.wrap{display:grid;grid-template-columns:1fr 450px; gap:18px; max-width:1200px;margin:0 auto;}
+.card{background:linear-gradient(180deg,#141619cc,#1b1d1fcc); padding:14px; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.6);}
+button{padding:8px 12px;border-radius:8px;border:0;cursor:pointer;color:#fff;}
+button.primary{background:var(--accent);color:#0b0b0b;}
+button.info{background:var(--info);}
+button.ghost{background:transparent;border:1px solid #444;color:#fff;}
+input[type=text], input[type=number]{padding:6px; border-radius:6px; border:1px solid #333; background:transparent; color:#e9ecef;}
+.mesa-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.player-name{font-weight:700;color:#fff;}
+.dados{display:flex;gap:12px;justify-content:center;margin:12px 0;}
+.dado{width:70px;height:70px;background:#fff;color:#000;font-size:2rem;border-radius:12px;display:flex;justify-content:center;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.6);}
+.resultadoLarge{text-align:center;font-weight:700;font-size:1.1rem;margin-top:8px;}
+.apostas{display:flex;gap:8px;justify-content:center;margin-top:8px;}
+.signal{margin-top:12px;padding:10px;border-radius:10px;background:#0f1720;border:1px solid #23282b;}
+.signal strong{display:block;color:var(--accent);font-size:1.05rem;}
+.signal .meta{font-size:.9rem;color:#bfc7ca;margin-top:6px;}
+.right-grid{display:flex;flex-direction:column;gap:12px;}
+.backbook-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px;}
+.bb-cell{height:28px;border-radius:6px;background:#2b2f33;border:1px solid #202427;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:#cfd8dc;}
+.bb-G{background:linear-gradient(180deg,#164c2a,#0e2f1b);color:#bff2d7;}
+.bb-P{background:linear-gradient(180deg,#3d1b1b,#2a0f0f);color:#ffd6d6;}
+.bb-T{background:linear-gradient(180deg,#4a3b13,#2b220a);color:#ffeead;}
+.history-list{max-height:300px;overflow:auto;padding:8px;}
+.hist-item{padding:8px;border-bottom:1px dashed #222;color:#cbd5da;font-size:.92rem;}
+.table24h{width:100%;border-collapse:collapse;margin-top:10px;}
+.table24h th, .table24h td{border:1px solid #444;padding:6px;text-align:center;}
+.table24h th{background:#1e2124;}
+footer{text-align:center;color:#93a6ad;font-size:.85rem;margin-top:18px;}
+</style>
+</head>
+<body>
+
+<header>
+<h1>BackBook do Graciano — Robô Inteligente 24h</h1>
+<p class="lead">Simula sinais estratégicos para cada hora do dia com análise das últimas 15 rodadas.</p>
+</header>
+
+<div class="wrap">
+
+<div>
+<div class="card">
+<div class="mesa-header">
+<div>
+<div class="small">Sessão:</div>
+<div class="player-name" id="playerLabel">Convidado</div>
+</div>
+<div>
+<input id="nameInput" type="text" placeholder="Seu nome (ex: Graciano)"/>
+<button class="primary" id="btnStart">Iniciar Sessão</button>
+</div>
+</div>
+
+<div style="margin-top:8px" class="meta-row">
+<div class="small">Saldo virtual: <strong id="saldoLabel">1000</strong></div>
+<div class="small">Stake: <input id="stake" type="number" value="100" style="width:80px"/></div>
+</div>
+
+<div class="controls" style="margin-top:10px;gap:6px;flex-wrap:wrap;">
+<button class="info" id="btnSuggest">Gerar sinais 24h</button>
+<button class="ghost" id="btnSimulate">Simular rodada</button>
+<button class="ghost" id="btnManual">Registrar rodada manual</button>
+<button class="ghost" id="btnReset">Resetar histórico</button>
+</div>
+
+<div class="dados" id="dadosArea">
+<div class="dado" id="d1">🎲</div>
+<div class="dado" id="d2">🎲</div>
+<div class="dado" id="d3">🎲</div>
+</div>
+
+<div class="apostas">
+<button class="btn" data-bet="Grande">Apostar Grande</button>
+<button class="btn" data-bet="Pequeno">Apostar Pequeno</button>
+<button class="btn" data-bet="Triplo">Apostar Triplo</button>
+</div>
+
+<div class="resultadoLarge" id="lastResult">Último resultado: —</div>
+
+<div class="signal" id="signalBox" style="display:block">
+<strong>Sinais 24h</strong>
+<table class="table24h" id="signalsTable">
+<thead><tr><th>Hora</th><th>Aposta</th><th>Confiança</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+
+<div class="card">
+<strong>Histórico de rodadas</strong>
+<div class="history-list" id="historyList"></div>
+</div>
+
+</div>
+
+<!-- RIGHT: BackBook visual -->
+<div class="right-grid">
+<div class="card">
+<div><strong>BackBook (últimas 25)</strong></div>
+<div class="backbook-grid" id="backbookGrid"></div>
+</div>
+</div>
+
+</div>
+
+<footer>BackBook do Graciano • Robô Inteligente 24h • Versão demo</footer>
+
+<script>
+(() => {
+const N = 15; // últimas 15 rodadas
+let player='Convidado', saldo=1000, stake=100, history=[];
+const playerLabel=document.getElementById('playerLabel'), saldoLabel=document.getElementById('saldoLabel'), stakeInput=document.getElementById('stake');
+const nameInput=document.getElementById('nameInput'), btnStart=document.getElementById('btnStart');
+const btnSuggest=document.getElementById('btnSuggest'), btnSimulate=document.getElementById('btnSimulate');
+const btnManual=document.getElementById('btnManual'), btnReset=document.getElementById('btnReset');
+const d1=document.getElementById('d1'), d2=document.getElementById('d2'), d3=document.getElementById('d3');
+const lastResult=document.getElementById('lastResult'), backbookGrid=document.getElementById('backbookGrid'), historyList=document.getElementById('historyList');
+const signalsTable=document.getElementById('signalsTable').querySelector('tbody');
+
+function applySession(){playerLabel.innerText=player; saldoLabel.innerText=saldo; stakeInput.value=stake;}
+btnStart.addEventListener('click',()=>{if(nameInput.value.trim())player=nameInput.value.trim();applySession();});
+
+stakeInput.addEventListener('change',()=>{stake=Math.max(1,parseInt(stakeInput.value)||100);});
+
+function rollDiceAnimation(){return new Promise(resolve=>{let c=0,v1=1,v2=1,v3=1;const it=setInterval(()=>{v1=Math.floor(Math.random()*6)+1;v2=Math.floor(Math.random()*6)+1;v3=Math.floor(Math.random()*6)+1;d1.innerText=v1;d2.innerText=v2;d3.innerText=v3;c++;if(c>15){clearInterval(it);setTimeout(()=>resolve([v1,v2,v3]),80);}},80);});}
+
+function calcResult(d){const [a,b,c]=d;const sum=a+b+c;if(a===b&&b===c)return 'Triplo';if(sum>=4&&sum<=10)return 'Pequeno';if(sum>=11&&sum<=17)return 'Grande';return 'Desconhecido';}
+
+function registerRound(d){const res=calcResult(d);history.push({t:new Date(),d:[...d],sum:d[0]+d[1]+d[2],result:res});if(history.length>500)history.shift();renderHistory();renderBackbook();lastResult.innerText=`Último resultado: ${res} (${d[0]} ${d[1]} ${d[2]})`;}
+
+function renderBackbook(){backbookGrid.innerHTML='';const slice=history.slice(-25).reverse();slice.forEach(e=>{const cell=document.createElement('div');cell.className='bb-cell';cell.title=`${e.result} • ${e.sum}`;cell.innerText=e.result[0];if(e.result==='Grande')cell.classList.add('bb-G');if(e.result==='Pequeno')cell.classList.add('bb-P');if(e.result==='Triplo')cell.classList.add('bb-T');backbookGrid.appendChild(cell);});for(let i=slice.length;i<25;i++){const cell=document.createElement('div');cell.className='bb-cell';cell.innerText='-';backbookGrid.appendChild(cell);}}
+
+function renderHistory(){historyList.innerHTML='';history.slice().reverse().forEach(h=>{const div=document.createElement('div');div.className='hist-item';div.innerText=`${h.t.toLocaleTimeString()} • ${h.result} • [${h.d.join(',')}] • soma:${h.sum}`;historyList.appendChild(div);});saldoLabel.innerText=saldo;}
+
+function generateSignals24h(){
+  signalsTable.innerHTML='';
+  const slice=history.slice(-N);
+  const counts={Grande:0,Pequeno:0,Triplo:0};
+  slice.forEach(r=>counts[r.result]=(counts[r.result]||0)+1);
+  const total=slice.length||1;
+  for(let h=0;h<24;h++){
+    let bet='Pequeno', conf=0.2;
+    // lógica pseudo-inteligente: frequência + random leve + streak
+    const pG=(counts.Grande/total)*0.7+Math.random()*0.3;
+    const pP=(counts.Pequeno/total)*0.7+Math.random()*0.3;
+    const pT=(counts.Triplo/total)*0.6+Math.random()*0.4;
+    if(pT>0.4)bet='Triplo',conf=Math.min(0.9,pT); else if(pG>pP)bet='Grande',conf=pG; else bet='Pequeno',conf=pP;
+    const row=document.createElement('tr');
+    row.innerHTML=`<td>${h}:00</td><td>${bet}</td><td>${Math.round(conf*100)}%</td>`;
+    signalsTable.appendChild(row);
+  }
+}
+
+btnSuggest.addEventListener('click',generateSignals24h);
+btnSimulate.addEventListener('click',async()=>{const d=await rollDiceAnimation();registerRound(d);});
+btnManual.addEventListener('click',()=>{const a=prompt('Dado1'); const b=prompt('Dado2'); const c=prompt('Dado3');const d=[parseInt(a||0),parseInt(b||0),parseInt(c||0)];if(d.some(x=>isNaN(x)||x<1||x>6)){alert('Inválido');return;}d1.innerText=d[0];d2.innerText=d[1];d3.innerText=d[2];registerRound(d);});
+btnReset.addEventListener('click',()=>{if(confirm('Resetar histórico e saldo?')){history=[];saldo=1000;d1.innerText='🎲';d2.innerText='🎲';d3.innerText='🎲';lastResult.innerText='Último resultado: —';renderHistory();renderBackbook();generateSignals24h();}});
+document.querySelectorAll('.apostas button').forEach(b=>b.addEventListener('click',async e=>{const t=e.currentTarget.dataset.bet;if(stake>saldo){alert('Saldo insuficiente');return;}const d=await rollDiceAnimation();const res=calcResult(d);let win=false,payout=0;if(t===res){win=true;payout=(res==='Triplo'?stake*4:stake*2);saldo+=payout;}else saldo-=stake;registerRound(d);alert(`Aposta: ${t}\nResultado: ${res}\n${win?'Ganhou +'+payout:'Perdeu -'+stake}\nSaldo: ${saldo}`);}));
+})();
+</script>
+
+</body>
+</html>
