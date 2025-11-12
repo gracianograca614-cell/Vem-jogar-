@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cassino Graciano 🎰</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Arial Black', sans-serif;
+      background: radial-gradient(circle, #111 20%, #000 80%);
+      color: white;
+      text-align: center;
+    }
+    header {
+      padding: 20px;
+      background: linear-gradient(90deg, red, gold);
+      color: black;
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+    .game-area {
+      margin-top: 40px;
+    }
+    .btn {
+      padding: 20px 40px;
+      margin: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+    }
+    .red { background-color: #d00; }
+    .blue { background-color: #00f; }
+    .result {
+      font-size: 30px;
+      margin-top: 40px;
+      font-weight: bold;
+    }
+    .counter {
+      margin-top: 20px;
+      font-size: 20px;
+      color: #ff0;
+    }
+    footer {
+      margin-top: 60px;
+      padding: 15px;
+      background: #111;
+      font-size: 14px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <header>🎲 Cassino Graciano – Jogue e Teste Sua Sorte! 🎲</header>
+
+  <div class="game-area">
+    <h2>Escolha sua aposta:</h2>
+    <button class="btn red" onclick="apostar('vermelho')">🔴 Vermelho</button>
+    <button class="btn blue" onclick="apostar('azul')">🔵 Azul</button>
+
+    <div class="result" id="resultado">Aguardando aposta...</div>
+    <div class="counter" id="contador">Rodadas: 0</div>
+  </div>
+
+  <footer>© 2025 Cassino Graciano | Criado por Graciano Gaveta</footer>
+
+  <script>
+    let rodadas = 0;
+
+    function apostar(corEscolhida) {
+      const cores = ['vermelho', 'azul'];
+      const resultado = cores[Math.floor(Math.random() * cores.length)];
+      rodadas++;
+
+      document.getElementById('contador').textContent = 'Rodadas: ' + rodadas;
+      const texto = document.getElementById('resultado');
+
+      if (corEscolhida === resultado) {
+        texto.innerHTML = '✅ Ganhou! Saiu ' + resultado.toUpperCase();
+        texto.style.color = 'lime';
+      } else {
+        texto.innerHTML = '❌ Perdeu! Saiu ' + resultado.toUpperCase();
+        texto.style.color = 'red';
+      }
+    }
+  </script>
+</body>
+</html>
