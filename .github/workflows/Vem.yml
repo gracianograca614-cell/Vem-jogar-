@@ -512,7 +512,223 @@ btnClearHist.addEventListener('click', ()=>{ decisionHistory=[]; decisionLog.inn
 historyBox.addEventListener('click', (ev)=>{
   const idx = Array.from(historyBox.children).indexOf(ev.target.closest('.hist-item'));
   if(idx>=0){
-    if(confirm('Remover esta rodada do histórico?')){ rounds.splice(idx,1); inputRounds.value = rounds.join(' '); renderHistory(); if(btnAuto.checked) runRobot(); }
+    if(confirm('Remover esta rodada do histórico?')){ rounds.splice(idx,1); inputRounds.value = rounds.join(' '); renderHistory(); if(btnAuto.checked) runRobot(); }<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robô BackBook - Graciano</title>
+<style>
+  /* ========== Estilo Geral ========== */
+  :root{
+    --bg:#071025;
+    --card:#0b1225;
+    --accent:#7c3aed;
+    --banca:#e74c3c;
+    --jogador:#3498db;
+    --empate:#2ecc71;
+    --glass: rgba(255,255,255,0.05);
+    --text:#e6eef6;
+    --muted:#94a3b8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;}
+  body{background:var(--bg);color:var(--text);line-height:1.4;}
+  .wrap{max-width:960px;margin:20px auto;padding:16px;}
+  h1,h2,h3{margin-bottom:8px;}
+  h1{font-size:1.5rem;}
+  .subtitle{color:var(--muted);font-size:0.9rem;}
+  .card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 8px 20px rgba(0,0,0,0.5);}
+  button{padding:10px 14px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:bold;cursor:pointer;transition:0.2s;}
+  button:hover{opacity:0.85;}
+  input, textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#fff;margin-top:6px;}
+  textarea{resize:vertical;}
+  .flex{display:flex;gap:12px;align-items:center;}
+  .flex-col{display:flex;flex-direction:column;}
+  .space-between{justify-content:space-between;}
+  .history{max-height:200px;overflow-y:auto;margin-top:10px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;background:var(--glass);}
+  .hist-item{display:flex;justify-content:space-between;padding:6px;border-bottom:1px dashed rgba(255,255,255,0.1);}
+  .sinal{padding:12px;border-radius:10px;text-align:center;margin-top:10px;font-size:1.2rem;font-weight:bold;}
+  .banca{background:var(--banca);}
+  .jogador{background:var(--jogador);}
+  .empate{background:var(--empate);}
+  .prob-row{display:flex;gap:8px;margin-top:12px;}
+  .prob-card{flex:1;padding:10px;border-radius:8px;text-align:center;background:var(--glass);}
+  .small{font-size:0.85rem;color:var(--muted);}
+  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.2);}
+  footer{text-align:center;font-size:0.8rem;color:var(--muted);margin-top:16px;}
+  @media(max-width:600px){.flex{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Robô BackBook - Graciano</h1>
+  <div class="subtitle">Assistente Bac Bo simulado em tempo real, sinais probabilísticos com histórico</div>
+
+  <!-- Entrada de rodadas -->
+  <div class="card">
+    <h2>Entradas (Últimas 15 rodadas)</h2>
+    <div class="small">Use B = Banca, J = Jogador, E = Empate (separados por espaço ou vírgula)</div>
+    <textarea id="inputRounds" placeholder="Ex: J B B J E J B J B J E B J B J"></textarea>
+    <div class="flex" style="margin-top:8px;">
+      <button id="btnParse">Atualizar Robô</button>
+      <button id="btnSim10" class="btn-ghost">Simular 10 rodadas</button>
+      <button id="btnClear" class="btn-ghost">Limpar</button>
+    </div>
+    <div class="history" id="historyBox"></div>
+  </div>
+
+  <!-- Sinal do robô -->
+  <div class="card">
+    <h2>Sinal Atual</h2>
+    <div class="sinal banca" id="signalText">—</div>
+    <div class="small" id="explainText">O robô aguarda os dados...</div>
+    <div class="flex" style="margin-top:8px;">
+      <button id="btnGen">Gerar Sinal Agora</button>
+      <button id="btnNotif" class="btn-ghost">Ativar Notificação</button>
+    </div>
+    <div class="prob-row">
+      <div class="prob-card banca">
+        <div class="small">Banca</div>
+        <div id="pB">0%</div>
+      </div>
+      <div class="prob-card jogador">
+        <div class="small">Jogador</div>
+        <div id="pJ">0%</div>
+      </div>
+      <div class="prob-card empate">
+        <div class="small">Empate</div>
+        <div id="pE">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Histórico de decisões -->
+  <div class="card">
+    <h2>Histórico de Decisões</h2>
+    <div class="history" id="decisionLog"></div>
+  </div>
+
+  <footer>
+    Disclaimer: Este robô é apenas uma simulação de treino. Não garante ganhos reais em casino.
+  </footer>
+</div>
+
+<script>
+// ========= Robô BackBook =========
+const inputRounds = document.getElementById('inputRounds');
+const btnParse = document.getElementById('btnParse');
+const btnGen = document.getElementById('btnGen');
+const btnSim10 = document.getElementById('btnSim10');
+const btnClear = document.getElementById('btnClear');
+const historyBox = document.getElementById('historyBox');
+const signalText = document.getElementById('signalText');
+const explainText = document.getElementById('explainText');
+const pB = document.getElementById('pB');
+const pJ = document.getElementById('pJ');
+const pE = document.getElementById('pE');
+const decisionLog = document.getElementById('decisionLog');
+const btnNotif = document.getElementById('btnNotif');
+
+let rounds = [];
+let decisionHistory = [];
+let notifAllowed = false;
+
+// Normalizar probabilidades
+function normalize(obj){
+  const sum = Object.values(obj).reduce((a,b)=>a+b,0)||1;
+  const out = {};
+  for(const k in obj) out[k]=obj[k]/sum;
+  return out;
+}
+
+// Formatar %
+function fmtPct(x){ return Math.round(x*100)+'%';}
+
+// Parse rounds
+function parseRounds(txt){
+  const parts = txt.trim().toUpperCase().split(/[\s,]+/).filter(Boolean);
+  return parts.map(p=>{
+    if(p.startsWith('B')) return 'B';
+    if(p.startsWith('J')) return 'J';
+    if(p.startsWith('E')) return 'E';
+    return null;
+  }).filter(Boolean);
+}
+
+// Render history
+function renderHistory(){
+  historyBox.innerHTML='';
+  rounds.forEach((r,i)=>{
+    const div = document.createElement('div');
+    div.className='hist-item';
+    div.innerHTML=`<div>#${i+1}</div><div>${r}</div>`;
+    historyBox.appendChild(div);
+  });
+}
+
+// Probabilidades simples: frequência + ruído
+function calcProb(){
+  const count = {B:0,J:0,E:0};
+  rounds.forEach(r=>{count[r]++;});
+  // adicionar ruído leve
+  const noise = Math.random()*0.1;
+  const prob = {B:count.B+noise, J:count.J+noise, E:count.E+noise};
+  return normalize(prob);
+}
+
+// Gerar sinal
+function generateSignal(){
+  if(rounds.length===0) return alert('Insira rodadas antes!');
+  const prob = calcProb();
+  // atualiza UI probabilidades
+  pB.textContent = fmtPct(prob.B);
+  pJ.textContent = fmtPct(prob.J);
+  pE.textContent = fmtPct(prob.E);
+  // sinal principal
+  const top = Object.entries(prob).sort((a,b)=>b[1]-a[1])[0][0];
+  const choice = top==='B'?'Banca':top==='J'?'Jogador':'Empate';
+  signalText.textContent = choice;
+  signalText.className='sinal '+top.toLowerCase();
+  explainText.textContent=`Probabilidade maior para ${choice} — baseada nas últimas rodadas.`;
+  // log decisão
+  decisionHistory.unshift({time:new Date().toLocaleTimeString(), choice, reason:explainText.textContent});
+  if(decisionHistory.length>50) decisionHistory.pop();
+  decisionLog.innerHTML = decisionHistory.map(d=>`<div class="hist-item"><div>${d.time}</div><div>${d.choice}</div></div>`).join('');
+  // notificação
+  if(notifAllowed) new Notification(`Sinal: ${choice}`,{body:explainText.textContent});
+}
+
+// botões
+btnParse.onclick = ()=>{
+  rounds = parseRounds(inputRounds.value);
+  renderHistory();
+};
+btnGen.onclick = ()=>generateSignal();
+btnSim10.onclick = ()=>{
+  for(let i=0;i<10;i++) rounds.unshift(['B','J','E'][Math.floor(Math.random()*3)]);
+  inputRounds.value = rounds.join(' ');
+  renderHistory();
+};
+btnClear.onclick = ()=>{
+  rounds=[]; inputRounds.value=''; renderHistory();
+  signalText.textContent='—'; explainText.textContent='O robô aguarda os dados...';
+  decisionLog.innerHTML=''; decisionHistory=[];
+};
+btnNotif.onclick = async ()=>{
+  if(!('Notification' in window)) return alert('Navegador não suporta notificações');
+  const perm = await Notification.requestPermission();
+  notifAllowed = perm==='granted';
+  btnNotif.textContent = notifAllowed?'Notificação ON':'Ativar Notificação';
+};
+
+// Inicial
+rounds = ['J','B','B','J','E','J','B','J','B','J','E','B','J','B','J'];
+inputRounds.value = rounds.join(' ');
+renderHistory();
+generateSignal();
+</script>
+</body>
+</html>
   }
 });
 
