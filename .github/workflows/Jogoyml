@@ -9,7 +9,7 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# Sets permissions of the GITHUB_TOKEN to allow 
 permissions:
   contents: read
   pages: write
@@ -216,6 +216,432 @@ btnSimulate.addEventListener('click',async()=>{const d=await rollDiceAnimation()
 btnManual.addEventListener('click',()=>{const a=prompt('Dado1'); const b=prompt('Dado2'); const c=prompt('Dado3');const d=[parseInt(a||0),parseInt(b||0),parseInt(c||0)];if(d.some(x=>isNaN(x)||x<1||x>6)){alert('Inválido');return;}d1.innerText=d[0];d2.innerText=d[1];d3.innerText=d[2];registerRound(d);});
 btnReset.addEventListener('click',()=>{if(confirm('Resetar histórico e saldo?')){history=[];saldo=1000;d1.innerText='🎲';d2.innerText='🎲';d3.innerText='🎲';lastResult.innerText='Último resultado: —';renderHistory();renderBackbook();generateSignals24h();}});
 document.querySelectorAll('.apostas button').forEach(b=>b.addEventListener('click',async e=>{const t=e.currentTarget.dataset.bet;if(stake>saldo){alert('Saldo insuficiente');return;}const d=await rollDiceAnimation();const res=calcResult(d);let win=false,payout=0;if(t===res){win=true;payout=(res==='Triplo'?stake*4:stake*2);saldo+=payout;}else saldo-=stake;registerRound(d);alert(`Aposta: ${t}\nResultado: ${res}\n${win?'Ganhou +'+payout:'Perdeu -'+stake}\nSaldo: ${saldo}`);}));
+})();
+</script>
+
+</body>
+</html>
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BackBook do Graciano — Robo BackBook (Visual)</title>
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+  :root{
+    --bg:#0b0d0f; --panel:#0f1113; --muted:#9aa6ad; --accent:#f4c542;
+    --red:#e94b4b; --blue:#3b82f6; --gold:#ffcf5c; --glass: rgba(255,255,255,0.04);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,Arial,Helvetica;background:linear-gradient(180deg,var(--bg),#0d0f11);color:#e6eef0;padding:18px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1200px;margin:0 auto 14px;}
+  h1{margin:0;color:var(--accent);font-size:1.4rem}
+  .subtitle{color:var(--muted);font-size:.95rem}
+  .container{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:420px 1fr;gap:18px}
+  /* LEFT: Login / controls */
+  .panel{background:linear-gradient(180deg,var(--panel),#131516);padding:14px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+  .left .form-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+  input[type=text]{flex:1;padding:10px;border-radius:8px;border:1px solid #243033;background:transparent;color:#e6eef0}
+  button{cursor:pointer;border:0;border-radius:10px;padding:10px 12px;font-weight:600}
+  .btn-primary{background:var(--accent);color:#081014}
+  .btn-ghost{background:transparent;border:1px solid #2a3336;color:#e6eef0}
+  .meta{color:var(--muted);font-size:.92rem;margin-bottom:8px}
+  .small{font-size:.86rem;color:var(--muted)}
+  .stake{width:120px;padding:8px;border-radius:8px;border:1px solid #243033;background:transparent;color:#e6eef0}
+  .buttons-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  /* DADOS */
+  .dice-row{display:flex;gap:10px;justify-content:center;margin:12px 0}
+  .dice{width:72px;height:72px;border-radius:12px;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-size:2rem;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+  /* quick bet */
+  .quick{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:6px}
+  .quick .ball{width:86px;height:86px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:#081014;box-shadow:0 12px 30px rgba(0,0,0,.6)}
+  .ball.red{background:var(--red);color:#fff}
+  .ball.blue{background:var(--blue);color:#fff}
+  .ball.gold{background:var(--gold);color:#081014}
+  .label-small{font-size:.85rem;color:var(--muted);margin-top:6px;text-align:center}
+  /* RIGHT: BackBook grande */
+  .right{display:flex;flex-direction:column;gap:12px}
+  .backbook{padding:14px;border-radius:12px;background:linear-gradient(180deg,#0f1213,#151818);box-shadow:0 8px 30px rgba(0,0,0,.6)}
+  .backbook h2{margin:0;color:var(--accent);font-size:1.05rem}
+  .bb-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:12px}
+  .bb-cell{height:44px;border-radius:8px;background:var(--glass);display:flex;align-items:center;justify-content:center;font-weight:700;color:#cfe7e9}
+  .bb-cell.empty{opacity:.3}
+  .bb-cell.red{background:linear-gradient(180deg,#b83b3b,#8b2525);color:#fff}
+  .bb-cell.blue{background:linear-gradient(180deg,#2b6ef0,#1848b2);color:#fff}
+  .bb-cell.gold{background:linear-gradient(180deg,#ffd66b,#e0aa2a);color:#081014}
+  .signals24{margin-top:12px;background:linear-gradient(180deg,#081116, #0b1314);padding:10px;border-radius:10px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;color:#e6eef0}
+  th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:center;font-size:.95rem}
+  th{color:var(--muted);font-weight:600}
+  .signal-row{display:flex;align-items:center;gap:8px;justify-content:center}
+  .signal-pill{padding:6px 10px;border-radius:999px;font-weight:700;color:#081014}
+  .sig-red{background:var(--red);color:#fff}
+  .sig-blue{background:var(--blue);color:#fff}
+  .sig-gold{background:var(--gold);color:#081014}
+  .controls-wide{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+  .history{margin-top:12px;max-height:220px;overflow:auto;padding:8px;background:rgba(0,0,0,0.25);border-radius:8px}
+  .hist-item{padding:8px;border-bottom:1px dashed rgba(255,255,255,0.03);font-size:.9rem}
+  footer{max-width:1200px;margin:18px auto 0;color:var(--muted);text-align:center;font-size:.85rem}
+  /* responsive */
+  @media(max-width:980px){.container{grid-template-columns:1fr;}.right{order:2}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>BackBook do Graciano</h1>
+    <div class="subtitle">Robô BackBook visual — sinais 24h · Aposta rápida · Interface profissional</div>
+  </div>
+  <div class="small">Versão demo • Local • Treino</div>
+</header>
+
+<div class="container">
+  <!-- LEFT -->
+  <div class="left">
+    <div class="panel">
+      <div class="form-row">
+        <input id="nameInput" type="text" placeholder="Seu nome (ex: Graciano)" />
+        <button id="btnStart" class="btn-primary">Iniciar sessão</button>
+      </div>
+
+      <div class="meta">Sessão: <strong id="playerName">Convidado</strong></div>
+      <div class="meta">Saldo virtual: <strong id="saldoLabel">1000</strong> • Stake: <input id="stake" class="stake" type="number" value="100" /></div>
+
+      <div class="buttons-row">
+        <button id="btnGenerate" class="btn-ghost">Gerar sinais 24h</button>
+        <button id="btnQuick" class="btn-ghost">Apostar rápido no sinal</button>
+        <button id="btnSim" class="btn-ghost">Simular rodada</button>
+        <button id="btnManual" class="btn-ghost">Registrar manual</button>
+        <button id="btnReset" class="btn-ghost">Resetar</button>
+      </div>
+
+      <div class="dice-row" style="margin-top:14px">
+        <div class="dice" id="d1">🎲</div>
+        <div class="dice" id="d2">🎲</div>
+        <div class="dice" id="d3">🎲</div>
+      </div>
+
+      <div class="quick" style="margin-top:6px;justify-content:space-between">
+        <div style="text-align:center">
+          <div class="ball red" id="ballSuggested" style="width:92px;height:92px;font-size:1.1rem">—</div>
+          <div class="label-small">Sinal atual</div>
+        </div>
+        <div style="flex:1;padding-left:12px;">
+          <div id="signalText" style="font-weight:700;font-size:1.05rem">Nenhum sinal gerado</div>
+          <div class="small" id="signalMeta">Confiança — Hora — Observação</div>
+          <div style="margin-top:8px"><button id="btnAccept" class="btn-primary">Apostar no sinal</button></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="label-small">Último resultado:</div>
+        <div id="lastResult" style="font-weight:700;margin-top:6px">—</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="backbook panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2>BackBook — visão geral</h2>
+        <div class="controls-wide">
+          <div class="small">Tempo local: <strong id="clock">--:--:--</strong></div>
+        </div>
+      </div>
+
+      <!-- big grid -->
+      <div class="bb-grid" id="bbGrid" style="margin-top:12px">
+        <!-- cells filled by JS -->
+      </div>
+
+      <div class="signals24" style="margin-top:12px">
+        <div style="font-weight:700;color:var(--accent);margin-bottom:8px">Sinais 24h — Previsões por hora</div>
+        <table>
+          <thead><tr><th>Hora</th><th>Aposta Sugerida</th><th>Confiança</th></tr></thead>
+          <tbody id="signalsTable"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700">Histórico recente</div>
+          <div class="small">Total: <span id="histCount">0</span></div>
+        </div>
+        <div class="history" id="historyList" style="margin-top:8px"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>BackBook do Graciano — 100% client-side demo. Use para treino e estratégia.</footer>
+
+<script>
+(() => {
+  // Config
+  const N = 15; // últimas rodadas para análise
+  const bbCells = 18; // número de células visuais (pode ser maior)
+  // Estado
+  let player = 'Convidado';
+  let saldo = 1000;
+  let stake = 100;
+  let history = []; // [{t:Date,d:[1,2,3],sum,result}]
+  let currentSignal = null; // {bet,conf,time}
+
+  // DOM refs
+  const nameInput = document.getElementById('nameInput');
+  const btnStart = document.getElementById('btnStart');
+  const playerName = document.getElementById('playerName');
+  const saldoLabel = document.getElementById('saldoLabel');
+  const stakeInput = document.getElementById('stake');
+  const btnGenerate = document.getElementById('btnGenerate');
+  const btnQuick = document.getElementById('btnQuick');
+  const btnSim = document.getElementById('btnSim');
+  const btnManual = document.getElementById('btnManual');
+  const btnReset = document.getElementById('btnReset');
+  const d1 = document.getElementById('d1'), d2=document.getElementById('d2'), d3=document.getElementById('d3');
+  const ballSuggested = document.getElementById('ballSuggested');
+  const signalText = document.getElementById('signalText');
+  const signalMeta = document.getElementById('signalMeta');
+  const btnAccept = document.getElementById('btnAccept');
+  const lastResult = document.getElementById('lastResult');
+  const bbGrid = document.getElementById('bbGrid');
+  const signalsTable = document.getElementById('signalsTable');
+  const historyList = document.getElementById('historyList');
+  const histCount = document.getElementById('histCount');
+  const clock = document.getElementById('clock');
+
+  // util
+  const nowTime = () => new Date().toLocaleTimeString();
+  setInterval(()=>clock.innerText = nowTime(), 1000);
+
+  function applySession(){
+    playerName.innerText = player;
+    saldoLabel.innerText = saldo;
+    stakeInput.value = stake;
+    renderHistory();
+    renderBB();
+    renderSignalBox();
+    generateSignals24h(); // initial
+  }
+
+  btnStart.addEventListener('click', ()=> {
+    if(nameInput.value.trim()) player = nameInput.value.trim();
+    applySession();
+  });
+
+  stakeInput.addEventListener('change', ()=> {
+    stake = Math.max(1, parseInt(stakeInput.value) || 100);
+  });
+
+  // result calc
+  function calcResult(d){
+    const [a,b,c] = d;
+    const sum = a+b+c;
+    if(a===b && b===c) return 'Triplo';
+    if(sum>=4 && sum<=10) return 'Pequeno';
+    if(sum>=11 && sum<=17) return 'Grande';
+    return 'Desconhecido';
+  }
+
+  function rollDiceAnim(){
+    return new Promise(resolve=>{
+      let c=0,v1=1,v2=1,v3=1;
+      const it = setInterval(()=>{
+        v1 = Math.floor(Math.random()*6)+1;
+        v2 = Math.floor(Math.random()*6)+1;
+        v3 = Math.floor(Math.random()*6)+1;
+        d1.innerText=v1; d2.innerText=v2; d3.innerText=v3;
+        c++; if(c>18){ clearInterval(it); setTimeout(()=>resolve([v1,v2,v3]),80); }
+      },70);
+    });
+  }
+
+  function registerRound(d){
+    const r = calcResult(d);
+    history.push({t:new Date(), d:[...d], sum:d[0]+d[1]+d[2], result:r});
+    if(history.length>1000) history.shift();
+    lastResult.innerText = `${r} (${d.join(' ')}) • ${nowTime()}`;
+    // recalc signal after new round
+    generateSignals24h();
+    renderBB(); renderHistory();
+  }
+
+  // render backbook visual grid
+  function renderBB(){
+    bbGrid.innerHTML='';
+    const slice = history.slice(-bbCells).reverse();
+    for(let i=0;i<bbCells;i++){
+      const cell = document.createElement('div'); cell.className='bb-cell';
+      const item = slice[i];
+      if(!item){ cell.classList.add('empty'); cell.innerText='-'; }
+      else {
+        if(item.result==='Grande'){ cell.classList.add('blue'); cell.innerText='G'; }
+        if(item.result==='Pequeno'){ cell.classList.add('red'); cell.innerText='P'; }
+        if(item.result==='Triplo'){ cell.classList.add('gold'); cell.innerText='T'; }
+        cell.title = `${item.result} • ${item.sum} • ${item.t.toLocaleTimeString()}`;
+      }
+      bbGrid.appendChild(cell);
+    }
+  }
+
+  function renderHistory(){
+    historyList.innerHTML='';
+    const rev = history.slice().reverse();
+    rev.slice(0,50).forEach(h=>{
+      const div = document.createElement('div'); div.className='hist-item';
+      div.innerText = `${h.t.toLocaleTimeString()} • ${h.result} • [${h.d.join(',')}] • soma:${h.sum}`;
+      historyList.appendChild(div);
+    });
+    histCount.innerText = history.length;
+    saldoLabel.innerText = saldo;
+  }
+
+  // SIGNAL generation (24h) - improved pseudo-intelligence:
+  // uses last N to compute frequencies, applies recency weight and streak detection.
+  function analyzeLastN(){
+    const slice = history.slice(-N);
+    if(slice.length===0) return {Grande:0.34,Pequeno:0.33,Triplo:0.03};
+    // base counts with recency weights
+    let weights = {Grande:0,Pequeno:0,Triplo:0}, totalWeight = 0;
+    for(let i=0;i<slice.length;i++){
+      const item = slice[i];
+      // recency weight: more recent get higher weight
+      const w = 1 + (i / slice.length) * 1.6; // 1..2.6
+      weights[item.result] = (weights[item.result]||0) + w;
+      totalWeight += w;
+    }
+    // normalize
+    return {
+      Grande: (weights.Grande || 0)/totalWeight,
+      Pequeno: (weights.Pequeno || 0)/totalWeight,
+      Triplo: (weights.Triplo || 0)/totalWeight
+    };
+  }
+
+  function decideForHour(hourProb, hourIndex){
+    // hourProb: {Grande,Pequeno,Triplo} base probabilities
+    // modify by hourIndex to introduce hour-based randomness and patterns
+    const hourBias = Math.sin(hourIndex*0.27) * 0.05; // pseudo pattern
+    let pG = hourProb.Grande + (hourBias);
+    let pP = hourProb.Pequeno - (hourBias*0.5);
+    let pT = Math.max(0.005, hourProb.Triplo + (Math.random()*0.02 - 0.01));
+    // normalize
+    const sum = pG+pP+pT;
+    pG/=sum; pP/=sum; pT/=sum;
+    // pick top
+    const map = [{k:'Grande',v:pG},{k:'Pequeno',v:pP},{k:'Triplo',v:pT}];
+    map.sort((a,b)=>b.v-a.v);
+    return {bet:map[0].k, conf:map[0].v};
+  }
+
+  function generateSignals24h(){
+    // analyze once
+    const base = analyzeLastN();
+    signalsTable.innerHTML='';
+    // pick best for each hour
+    const signals = [];
+    for(let h=0;h<24;h++){
+      const s = decideForHour(base,h);
+      signals.push({...s, hour:h});
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${String(h).padStart(2,'0')}:00</td><td>${s.bet}</td><td>${Math.round(s.conf*100)}%</td>`;
+      signalsTable.appendChild(tr);
+    }
+    // set current signal as the one for current hour
+    const currH = new Date().getHours();
+    const nowSig = signals[currH];
+    currentSignal = {...nowSig, time:new Date()};
+    renderSignalBox();
+  }
+
+  function renderSignalBox(){
+    if(!currentSignal){
+      ballSuggested.style.background = 'var(--red)'; ballSuggested.innerText='—';
+      signalText.innerText = 'Nenhum sinal';
+      signalMeta.innerText = 'Gere sinais 24h para iniciar';
+      return;
+    }
+    // color ball accordingly
+    const b = currentSignal.bet;
+    let text='—';
+    if(b==='Grande'){ ballSuggested.className = 'ball blue'; ballSuggested.innerText='GRANDE'; }
+    if(b==='Pequeno'){ ballSuggested.className = 'ball red'; ballSuggested.innerText='PEQUENO'; }
+    if(b==='Triplo'){ ballSuggested.className = 'ball gold'; ballSuggested.innerText='TRIPLO'; }
+    signalText.innerText = `SINAL AGORA -> ${b}`;
+    signalMeta.innerText = `Confiança: ${Math.round(currentSignal.conf*100)}% • Hora: ${String(currentSignal.hour).padStart(2,'0')}:00 • Base: últimas ${Math.min(history.length,N)} rodadas`;
+  }
+
+  // quick bet (aplica stake no sinal atual)
+  async function betOnSignal(){
+    if(!currentSignal){ alert('Sem sinal ativo — gera sinais 24h primeiro.'); return; }
+    if(stake > saldo){ alert('Saldo insuficiente'); return; }
+    // roll dice
+    const d = await rollDiceAnim();
+    const res = calcResult(d);
+    // payout rules: Triplo pays 4x, others 2x (demo)
+    let won=false, payout=0;
+    if(res === currentSignal.bet){ won=true; payout = (res==='Triplo'? stake*4 : stake*2); saldo += payout; }
+    else { saldo -= stake; }
+    registerRound(d);
+    alert(`Aposta no sinal: ${currentSignal.bet}\nResultado: ${res}\n${won?('GANHOU +'+payout):('PERDEU -'+stake)}\nSaldo: ${saldo}`);
+    applySession();
+  }
+
+  // manual flows
+  btnGenerate.addEventListener('click', ()=> generateSignals24h());
+  btnQuick.addEventListener('click', ()=> betOnSignal());
+  btnAccept.addEventListener('click', ()=> betOnSignal());
+  btnSim.addEventListener('click', async ()=>{
+    const d = await rollDiceAnim();
+    registerRound(d);
+  });
+  btnManual.addEventListener('click', ()=>{
+    const a = parseInt(prompt('Dado 1 (1-6)')||'0'), b = parseInt(prompt('Dado 2 (1-6)')||'0'), c = parseInt(prompt('Dado 3 (1-6)')||'0');
+    if([a,b,c].some(x=>isNaN(x) || x<1 || x>6)){ alert('Valores inválidos'); return; }
+    d1.innerText=a; d2.innerText=b; d3.innerText=c;
+    registerRound([a,b,c]);
+  });
+
+  document.querySelectorAll('.apostas button').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const type = e.currentTarget.getAttribute('data-bet');
+      if(stake>saldo){ alert('Saldo insuficiente'); return; }
+      if(!confirm(`Confirmar aposta ${type} com stake ${stake}?`)) return;
+      const d = await rollDiceAnim(); const res = calcResult(d);
+      if(res===type) saldo += (type==='Triplo'? stake*4 : stake*2); else saldo -= stake;
+      registerRound(d);
+      alert(`Aposta: ${type}\nResultado: ${res}\nSaldo: ${saldo}`);
+      applySession();
+    });
+  });
+
+  btnReset.addEventListener('click', ()=>{
+    if(!confirm('Resetar histórico e saldo?')) return;
+    history = []; saldo = 1000; currentSignal = null;
+    d1.innerText='🎲'; d2.innerText='🎲'; d3.innerText='🎲';
+    applySession();
+  });
+
+  // initial render
+  applySession();
+
+  // load saved (optional)
+  try{
+    const saved = JSON.parse(localStorage.getItem('bb_graciano_v2')||'null');
+    if(saved){ history = saved.history||history; saldo = saved.saldo||saldo; player = saved.player||player; stake = saved.stake||stake; applySession(); }
+  }catch(e){/*ignore*/}
+
+  // autosave
+  window.addEventListener('beforeunload', ()=> {
+    try{ localStorage.setItem('bb_graciano_v2', JSON.stringify({history,saldo,player,stake})); }catch(e){}
+  });
+
 })();
 </script>
 
