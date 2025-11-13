@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robô Assistente Bac Bo</title>
+<style>
+body {
+  font-family: 'Arial', sans-serif;
+  background: #f0f2f5;
+  text-align: center;
+  padding: 20px;
+}
+h1 {
+  color: #222;
+}
+.panel {
+  background: #fff;
+  padding: 20px;
+  margin: 15px auto;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  max-width: 500px;
+}
+.sinal {
+  display: inline-block;
+  padding: 20px 40px;
+  margin: 10px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border-radius: 12px;
+  color: #fff;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.active {
+  transform: scale(1.2);
+  box-shadow: 0 0 25px rgba(0,0,0,0.4);
+}
+#historico {
+  margin-top: 20px;
+  font-size: 1rem;
+}
+.btn {
+  padding: 12px 20px;
+  margin: 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #fff;
+  background: #8e44ad;
+}
+</style>
+</head>
+<body>
+
+<h1>Robô Assistente Bac Bo</h1>
+
+<div class="panel">
+  <p>O robô irá indicar automaticamente onde apostar:</p>
+  <div id="sinais">
+    <div id="banca" class="sinal" style="background:#e74c3c;">Banca</div>
+    <div id="jogador" class="sinal" style="background:#3498db;">Jogador</div>
+    <div id="empate" class="sinal" style="background:#2ecc71;">Empate</div>
+  </div>
+  <p class="small">O robô atualiza o sinal automaticamente a cada 5 segundos.</p>
+</div>
+
+<div class="panel">
+  <h3>Histórico das últimas apostas</h3>
+  <div id="historico"></div>
+  <button id="resetHist" class="btn">Limpar Histórico</button>
+</div>
+
+<script>
+const banca = document.getElementById('banca');
+const jogador = document.getElementById('jogador');
+const empate = document.getElementById('empate');
+const historicoDiv = document.getElementById('historico');
+const resetBtn = document.getElementById('resetHist');
+
+let historico = [];
+
+// Função do robô: escolhe resultado com lógica probabilística
+function roboSinal() {
+  // Contagem interna para criar lógica
+  let total = historico.length;
+  let prob = {Banca:1, Jogador:1, Empate:1}; // base
+  if(total > 0){
+    // aumenta chance de escolher o menos frequente (contrarian)
+    let counts = {Banca:0, Jogador:0, Empate:0};
+    historico.forEach(r => counts[r]++);
+    // calcular probabilidade ponderada inversa
+    prob.Banca += (total - counts.Banca);
+    prob.Jogador += (total - counts.Jogador);
+    prob.Empate += (total - counts.Empate);
+  }
+  // escolher baseado na probabilidade
+  let soma = prob.Banca + prob.Jogador + prob.Empate;
+  let rnd = Math.random()*soma;
+  let escolha;
+  if(rnd < prob.Banca) escolha = 'Banca';
+  else if(rnd < prob.Banca+prob.Jogador) escolha = 'Jogador';
+  else escolha = 'Empate';
+  return escolha;
+}
+
+// Atualiza interface
+function mostrarSinal(escolha){
+  [banca,jogador,empate].forEach(el => el.classList.remove('active'));
+  let el = escolha==='Banca'?banca:(escolha==='Jogador'?jogador:empate);
+  el.classList.add('active');
+  // Atualiza histórico
+  historico.unshift(escolha);
+  if(historico.length>10) historico.pop();
+  renderHistorico();
+}
+
+// Renderiza histórico
+function renderHistorico(){
+  historicoDiv.innerHTML = historico.map((h,i)=>`${i+1}. ${h}`).join('<br>');
+}
+
+// Loop automático do robô
+function loopRobo(){
+  let sinal = roboSinal();
+  mostrarSinal(sinal);
+}
+
+// Inicializa robô: atualiza a cada 5 segundos
+setInterval(loopRobo,5000);
+
+// Botão limpar histórico
+resetBtn.addEventListener('click', ()=>{historico=[];renderHistorico();});
+
+// Inicia imediatamente
+loopRobo();
+</script>
+
+</body>
+</html>
