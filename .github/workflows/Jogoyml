@@ -549,100 +549,143 @@ document.querySelectorAll('.apostas button').forEach(b=>b.addEventListener('clic
     for(let h=0;h<24;h++){
       const s = decideForHour(base,h);
       signals.push({...s, hour:h});
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${String(h).padStart(2,'0')}:00</td><td>${s.bet}</td><td>${Math.round(s.conf*100)}%</td>`;
-      signalsTable.appendChild(tr);
-    }
-    // set current signal as the one for current hour
-    const currH = new Date().getHours();
-    const nowSig = signals[currH];
-    currentSignal = {...nowSig, time:new Date()};
-    renderSignalBox();
+      const tr = document.createElement('<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robô Assistente Bac Bo</title>
+<style>
+body {
+  font-family: 'Arial', sans-serif;
+  background: #f0f2f5;
+  text-align: center;
+  padding: 20px;
+}
+h1 {
+  color: #222;
+}
+.panel {
+  background: #fff;
+  padding: 20px;
+  margin: 15px auto;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  max-width: 500px;
+}
+.sinal {
+  display: inline-block;
+  padding: 20px 40px;
+  margin: 10px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border-radius: 12px;
+  color: #fff;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.active {
+  transform: scale(1.2);
+  box-shadow: 0 0 25px rgba(0,0,0,0.4);
+}
+#historico {
+  margin-top: 20px;
+  font-size: 1rem;
+}
+.btn {
+  padding: 12px 20px;
+  margin: 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #fff;
+  background: #8e44ad;
+}
+</style>
+</head>
+<body>
+
+<h1>Robô Assistente Bac Bo</h1>
+
+<div class="panel">
+  <p>O robô irá indicar automaticamente onde apostar:</p>
+  <div id="sinais">
+    <div id="banca" class="sinal" style="background:#e74c3c;">Banca</div>
+    <div id="jogador" class="sinal" style="background:#3498db;">Jogador</div>
+    <div id="empate" class="sinal" style="background:#2ecc71;">Empate</div>
+  </div>
+  <p class="small">O robô atualiza o sinal automaticamente a cada 5 segundos.</p>
+</div>
+
+<div class="panel">
+  <h3>Histórico das últimas apostas</h3>
+  <div id="historico"></div>
+  <button id="resetHist" class="btn">Limpar Histórico</button>
+</div>
+
+<script>
+const banca = document.getElementById('banca');
+const jogador = document.getElementById('jogador');
+const empate = document.getElementById('empate');
+const historicoDiv = document.getElementById('historico');
+const resetBtn = document.getElementById('resetHist');
+
+let historico = [];
+
+// Função do robô: escolhe resultado com lógica probabilística
+function roboSinal() {
+  // Contagem interna para criar lógica
+  let total = historico.length;
+  let prob = {Banca:1, Jogador:1, Empate:1}; // base
+  if(total > 0){
+    // aumenta chance de escolher o menos frequente (contrarian)
+    let counts = {Banca:0, Jogador:0, Empate:0};
+    historico.forEach(r => counts[r]++);
+    // calcular probabilidade ponderada inversa
+    prob.Banca += (total - counts.Banca);
+    prob.Jogador += (total - counts.Jogador);
+    prob.Empate += (total - counts.Empate);
   }
+  // escolher baseado na probabilidade
+  let soma = prob.Banca + prob.Jogador + prob.Empate;
+  let rnd = Math.random()*soma;
+  let escolha;
+  if(rnd < prob.Banca) escolha = 'Banca';
+  else if(rnd < prob.Banca+prob.Jogador) escolha = 'Jogador';
+  else escolha = 'Empate';
+  return escolha;
+}
 
-  function renderSignalBox(){
-    if(!currentSignal){
-      ballSuggested.style.background = 'var(--red)'; ballSuggested.innerText='—';
-      signalText.innerText = 'Nenhum sinal';
-      signalMeta.innerText = 'Gere sinais 24h para iniciar';
-      return;
-    }
-    // color ball accordingly
-    const b = currentSignal.bet;
-    let text='—';
-    if(b==='Grande'){ ballSuggested.className = 'ball blue'; ballSuggested.innerText='GRANDE'; }
-    if(b==='Pequeno'){ ballSuggested.className = 'ball red'; ballSuggested.innerText='PEQUENO'; }
-    if(b==='Triplo'){ ballSuggested.className = 'ball gold'; ballSuggested.innerText='TRIPLO'; }
-    signalText.innerText = `SINAL AGORA -> ${b}`;
-    signalMeta.innerText = `Confiança: ${Math.round(currentSignal.conf*100)}% • Hora: ${String(currentSignal.hour).padStart(2,'0')}:00 • Base: últimas ${Math.min(history.length,N)} rodadas`;
-  }
+// Atualiza interface
+function mostrarSinal(escolha){
+  [banca,jogador,empate].forEach(el => el.classList.remove('active'));
+  let el = escolha==='Banca'?banca:(escolha==='Jogador'?jogador:empate);
+  el.classList.add('active');
+  // Atualiza histórico
+  historico.unshift(escolha);
+  if(historico.length>10) historico.pop();
+  renderHistorico();
+}
 
-  // quick bet (aplica stake no sinal atual)
-  async function betOnSignal(){
-    if(!currentSignal){ alert('Sem sinal ativo — gera sinais 24h primeiro.'); return; }
-    if(stake > saldo){ alert('Saldo insuficiente'); return; }
-    // roll dice
-    const d = await rollDiceAnim();
-    const res = calcResult(d);
-    // payout rules: Triplo pays 4x, others 2x (demo)
-    let won=false, payout=0;
-    if(res === currentSignal.bet){ won=true; payout = (res==='Triplo'? stake*4 : stake*2); saldo += payout; }
-    else { saldo -= stake; }
-    registerRound(d);
-    alert(`Aposta no sinal: ${currentSignal.bet}\nResultado: ${res}\n${won?('GANHOU +'+payout):('PERDEU -'+stake)}\nSaldo: ${saldo}`);
-    applySession();
-  }
+// Renderiza histórico
+function renderHistorico(){
+  historicoDiv.innerHTML = historico.map((h,i)=>`${i+1}. ${h}`).join('<br>');
+}
 
-  // manual flows
-  btnGenerate.addEventListener('click', ()=> generateSignals24h());
-  btnQuick.addEventListener('click', ()=> betOnSignal());
-  btnAccept.addEventListener('click', ()=> betOnSignal());
-  btnSim.addEventListener('click', async ()=>{
-    const d = await rollDiceAnim();
-    registerRound(d);
-  });
-  btnManual.addEventListener('click', ()=>{
-    const a = parseInt(prompt('Dado 1 (1-6)')||'0'), b = parseInt(prompt('Dado 2 (1-6)')||'0'), c = parseInt(prompt('Dado 3 (1-6)')||'0');
-    if([a,b,c].some(x=>isNaN(x) || x<1 || x>6)){ alert('Valores inválidos'); return; }
-    d1.innerText=a; d2.innerText=b; d3.innerText=c;
-    registerRound([a,b,c]);
-  });
+// Loop automático do robô
+function loopRobo(){
+  let sinal = roboSinal();
+  mostrarSinal(sinal);
+}
 
-  document.querySelectorAll('.apostas button').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      const type = e.currentTarget.getAttribute('data-bet');
-      if(stake>saldo){ alert('Saldo insuficiente'); return; }
-      if(!confirm(`Confirmar aposta ${type} com stake ${stake}?`)) return;
-      const d = await rollDiceAnim(); const res = calcResult(d);
-      if(res===type) saldo += (type==='Triplo'? stake*4 : stake*2); else saldo -= stake;
-      registerRound(d);
-      alert(`Aposta: ${type}\nResultado: ${res}\nSaldo: ${saldo}`);
-      applySession();
-    });
-  });
+// Inicializa robô: atualiza a cada 5 segundos
+setInterval(loopRobo,5000);
 
-  btnReset.addEventListener('click', ()=>{
-    if(!confirm('Resetar histórico e saldo?')) return;
-    history = []; saldo = 1000; currentSignal = null;
-    d1.innerText='🎲'; d2.innerText='🎲'; d3.innerText='🎲';
-    applySession();
-  });
+// Botão limpar histórico
+resetBtn.addEventListener('click', ()=>{historico=[];renderHistorico();});
 
-  // initial render
-  applySession();
-
-  // load saved (optional)
-  try{
-    const saved = JSON.parse(localStorage.getItem('bb_graciano_v2')||'null');
-    if(saved){ history = saved.history||history; saldo = saved.saldo||saldo; player = saved.player||player; stake = saved.stake||stake; applySession(); }
-  }catch(e){/*ignore*/}
-
-  // autosave
-  window.addEventListener('beforeunload', ()=> {
-    try{ localStorage.setItem('bb_graciano_v2', JSON.stringify({history,saldo,player,stake})); }catch(e){}
-  });
-
-})();
+// Inicia imediatamente
+loopRobo();
 </script>
 
 </body>
