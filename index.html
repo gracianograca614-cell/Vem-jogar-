@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Cassino - Robô Assistente</title>
+<style>
+body, html{margin:0;padding:0;font-family:Arial,sans-serif;background:#0a0a0a;color:#fff;overflow:hidden;}
+#loginScreen,#roomScreen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;}
+#loginScreen input,#imageInput{padding:12px;margin:10px;font-size:16px;border-radius:6px;border:none;}
+#loginScreen button,#uploadBtn,#predictBtn{padding:12px 25px;font-size:16px;border-radius:6px;border:none;cursor:pointer;background:#007bff;color:#fff;margin:5px;}
+#signal{font-size:24px;margin-top:20px;font-weight:bold;}
+#history{margin-top:10px;font-size:18px;max-height:150px;overflow-y:auto;width:80%;text-align:left;}
+canvas{display:block;}
+</style>
+</head>
+<body>
+<div id="loginScreen">
+    <h1>Bem-vindo ao Meu Cassino</h1>
+    <input type="text" id="username" placeholder="Digite seu nome">
+    <button id="enterBtn">Entrar</button>
+</div>
+
+<div id="roomScreen" style="display:none;">
+    <h2 id="welcome"></h2>
+    <div id="scene" style="width:100%;height:50vh;"></div>
+    <input type="file" id="imageInput" accept="image/*">
+    <button id="uploadBtn">Enviar Print-shot</button>
+    <button id="predictBtn">Gerar Previsão</button>
+    <div id="signal"></div>
+    <div id="history"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r148/three.min.js"></script>
+<script>
+const loginScreen = document.getElementById("loginScreen");
+const roomScreen = document.getElementById("roomScreen");
+const enterBtn = document.getElementById("enterBtn");
+const usernameInput = document.getElementById("username");
+const welcomeText = document.getElementById("welcome");
+const signalDiv = document.getElementById("signal");
+const historyDiv = document.getElementById("history");
+const imageInput = document.getElementById("imageInput");
+const uploadBtn = document.getElementById("uploadBtn");
+const predictBtn = document.getElementById("predictBtn");
+let historyArr = [];
+
+// LOGIN
+enterBtn.addEventListener("click",()=>{
+    const name = usernameInput.value.trim();
+    if(name){
+        localStorage.setItem("username",name);
+        initRoom();
+    }
+});
+
+function initRoom(){
+    const username = localStorage.getItem("username") || "Jogador";
+    loginScreen.style.display="none";
+    roomScreen.style.display="flex";
+    welcomeText.innerText=`Olá ${username}, bem-vindo à sala do cassino`;
+
+    // SETUP THREE.JS
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+    const renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth,window.innerHeight*0.5);
+    document.getElementById("scene").appendChild(renderer.domElement);
+
+    // Luzes
+    scene.add(new THREE.AmbientLight(0xffffff,0.3));
+    const spot = new THREE.SpotLight(0xffffff,1);
+    spot.position.set(0,300,100);
+    scene.add(spot);
+
+    // Mesa 3D
+    const loader = new THREE.TextureLoader();
+    loader.load('https://i.imgur.com/yh0Z9E8.jpg', function(texture){
+        const geo = new THREE.CylinderGeometry(120,120,12,64);
+        const mat = new THREE.MeshStandardMaterial({map:texture});
+        const table = new THREE.Mesh(geo, mat);
+        table.rotation.x = Math.PI/2;
+        scene.add(table);
+
+        const chipGeo = new THREE.TorusGeometry(40,6,16,100);
+        const chipMat = new THREE.MeshStandardMaterial({color:0x8f7ae6});
+        const chip = new THREE.Mesh(chipGeo,chipMat);
+        chip.rotation.x=Math.PI/2; chip.position.y=8;
+        scene.add(chip);
+
+        function animate(){
+            requestAnimationFrame(animate);
+            table.rotation.z +=0.002;
+            chip.rotation.z -=0.01;
+            renderer.render(scene,camera);
+        }
+        animate();
+    });
+
+    camera.position.z=300;
+
+    // DETECÇÃO DE COR A PARTIR DE PRINT-SHOT
+    uploadBtn.addEventListener("click",()=>{
+        if(imageInput.files.length===0){alert("Selecione uma imagem"); return;}
+        const file = imageInput.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e){
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = function(){
+                const canvas = document.createElement("canvas");
+                canvas.width=img.width; canvas.height=img.height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img,0,0);
+                const imageData = ctx.getImageData(0,0,img.width,img.height);
+                const data = imageData.data;
+                let r=0,g=0,b=0, count=0;
+                for(let i=0;i<data.length;i+=4){
+                    r+=data[i]; g+=data[i+1]; b+=data[i+2]; count++;
+                }
+                r=Math.floor(r/count); g=Math.floor(g/count); b=Math.floor(b/count);
+                let detected;
+                if(r>150 && g<100 && b<100) detected="BANK"; // vermelho
+                else if(r<100 && g<100 && b>150) detected="PLAYER"; // azul
+                else detected="TIE"; // amarelo/empate
+                historyArr.push(detected);
+                if(historyArr.length>20) historyArr.shift();
+                updateHistory();
+                signalDiv.innerHTML=`Rodada detectada: <span style="color:${detected==="PLAYER"?"blue":detected==="BANK"?"red":"yellow"}">${detected}</span>`;
+            }
+        }
+        reader.readAsDataURL(file);
+    });
+
+    // FUNÇÃO DE PREVISÃO SIMPLES
+    predictBtn.addEventListener("click",()=>{
+        if(historyArr.length===0){alert("Nenhuma rodada detectada"); return;}
+        const last = historyArr[historyArr.length-1];
+        let prediction;
+        if(last==="PLAYER") prediction="BANK";
+        else if(last==="BANK") prediction="PLAYER";
+        else prediction=["PLAYER","BANK"][Math.floor(Math.random()*2)];
+        signalDiv.innerHTML+=`<br>Previsão próxima rodada: <span style="color:${prediction==="PLAYER"?"blue":prediction==="BANK"?"red":"yellow"}">${prediction}</span>`;
+    });
+
+    function updateHistory(){
+        const colors={PLAYER:"blue",BANK:"red",TIE:"yellow"};
+        historyDiv.innerHTML=historyArr.map((v,i)=>`${i+1}: <span style="color:${colors[v]}">${v}</span>`).join("<br>");
+    }
+}
+</script>
+</body>
+</html>
