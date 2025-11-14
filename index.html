@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BacBo — Meu Gerador</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="container">
+    <h1>🎲 BacBo — Simulação de Coincidências</h1>
+
+    <div class="panel">
+        <h2>Gerador do Cassino</h2>
+        <button onclick="gerarCassino()">Gerar rodada</button>
+        <p id="cassinoResult">—</p>
+    </div>
+
+    <div class="panel">
+        <h2>Meu Gerador</h2>
+        <button onclick="gerarMeu()">Gerar rodada</button>
+        <p id="meuResult">—</p>
+    </div>
+
+    <div class="panel">
+        <h2>Comparação</h2>
+        <button onclick="comparar()">Comparar resultados</button>
+        <p id="comparacao">—</p>
+    </div>
+
+    <div class="panel">
+        <h2>Recomendação do Robô</h2>
+        <p id="roboMsg">—</p>
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
